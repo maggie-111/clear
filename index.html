@@ -1,163 +1,990 @@
-// pages/index.js
-import Head from 'next/head'
-import { useState, useEffect } from 'react'
-
-export default function Home() {
-  // 模块一：工作复盘
-  const [workExperience, setWorkExperience] = useState({
-    situation: '', task: '', action: '', result: ''
-  });
-  const [summary, setSummary] = useState('');
-  const [coreTag, setCoreTag] = useState('');
-  const [workHistory, setWorkHistory] = useState([]);
-
-  const handleWorkInputChange = (e) => {
-    const { name, value } = e.target;
-    setWorkExperience(prev => ({ ...prev, [name]: value }));
-  };
-
-  const generateWorkSummary = () => {
-    const { situation, task, action, result } = workExperience;
-    const shortSummary = `在${situation}中，负责${task}，采取了${action}，最终${result}`;
-    const tag = task.length > 8 ? task.slice(0, 6) : '能力提炼';
-    setSummary(shortSummary);
-    setCoreTag(tag);
-
-    const newEntry = {
-      ...workExperience,
-      summary: shortSummary,
-      coreTag: tag,
-      timestamp: new Date().toISOString()
-    };
-    const updatedHistory = [...workHistory, newEntry];
-    setWorkHistory(updatedHistory);
-    localStorage.setItem('workHistory', JSON.stringify(updatedHistory));
-  };
-
-  // 模块二：工作卡点分析
-  const [challenge, setChallenge] = useState({
-    context: '', analysis: '', reflection: ''
-  });
-  const [challengeHistory, setChallengeHistory] = useState([]);
-
-  const handleChallengeChange = (e) => {
-    const { name, value } = e.target;
-    setChallenge(prev => ({ ...prev, [name]: value }));
-  };
-
-  const saveChallenge = () => {
-    const newEntry = { ...challenge, timestamp: new Date().toISOString() };
-    const updatedHistory = [...challengeHistory, newEntry];
-    setChallengeHistory(updatedHistory);
-    localStorage.setItem('challengeHistory', JSON.stringify(updatedHistory));
-  };
-
-  // 模块三：学习计划
-  const [learning, setLearning] = useState({
-    context: '', topic: '', resources: '', log: '', reflection: ''
-  });
-  const [learningHistory, setLearningHistory] = useState([]);
-
-  const handleLearningChange = (e) => {
-    const { name, value } = e.target;
-    setLearning(prev => ({ ...prev, [name]: value }));
-  };
-
-  const saveLearning = () => {
-    const newEntry = { ...learning, timestamp: new Date().toISOString() };
-    const updatedHistory = [...learningHistory, newEntry];
-    setLearningHistory(updatedHistory);
-    localStorage.setItem('learningHistory', JSON.stringify(updatedHistory));
-  };
-
-  useEffect(() => {
-    const wh = JSON.parse(localStorage.getItem('workHistory') || '[]');
-    const ch = JSON.parse(localStorage.getItem('challengeHistory') || '[]');
-    const lh = JSON.parse(localStorage.getItem('learningHistory') || '[]');
-    setWorkHistory(wh);
-    setChallengeHistory(ch);
-    setLearningHistory(lh);
-  }, []);
-
-  return (
-    <>
-      <Head>
-        <title>成长工作台</title>
-      </Head>
-      <main className="p-4 max-w-3xl mx-auto space-y-10">
-        <h1 className="text-3xl font-bold text-center">成长工作台</h1>
-
-        {/* 模块一 */}
-        <section>
-          <h2 className="text-xl font-semibold mb-2">🧠 工作复盘（STAR）</h2>
-          {["situation", "task", "action", "result"].map(field => (
-            <div key={field} className="mb-3">
-              <label className="block font-medium capitalize mb-1">{field}</label>
-              <textarea name={field} value={workExperience[field]} onChange={handleWorkInputChange} className="w-full border rounded p-2" rows={2} />
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人能力发展管理系统</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6b8cae;
+            --accent-color: #ff7e5f;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --success-color: #28a745;
+            --info-color: #17a2b8;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background-color: #ddd;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: white;
+            border-radius: 0 5px 5px 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+        
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .star-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        
+        .star-section h4 {
+            margin-bottom: 10px;
+            color: var(--secondary-color);
+        }
+        
+        .star-section p {
+            margin-bottom: 5px;
+        }
+        
+        .elevator-pitch {
+            font-style: italic;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--accent-color);
+            margin: 15px 0;
+        }
+        
+        .tag {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+        
+        .resource-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .resource-item:last-child {
+            border-bottom: none;
+        }
+        
+        .progress-log {
+            margin-top: 15px;
+        }
+        
+        .log-entry {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .log-date {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                margin-right: 0;
+                margin-bottom: 5px;
+                border-radius: 5px;
+            }
+            
+            .tab-content {
+                border-radius: 5px;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>个人能力发展管理系统</h1>
+            <p class="subtitle">系统性地复盘工作经验，分析工作挑战，规划学习路径，打造个人能力发展蓝图</p>
+        </header>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="review">工作复盘</div>
+            <div class="tab" data-tab="challenge">工作卡点分析</div>
+            <div class="tab" data-tab="learning">学习规划</div>
+            <div class="tab" data-tab="library">能力素材库</div>
+        </div>
+        
+        <!-- 工作复盘模块 -->
+        <div id="review" class="tab-content active">
+            <div class="card">
+                <h2>工作经历复盘与STAR提炼</h2>
+                <p>将您的工作经历通过STAR法则进行结构化梳理，提炼核心价值，转化为可复用的个人能力素材。</p>
+                
+                <div class="form-group">
+                    <label for="experience-input">请输入您的工作经历描述：</label>
+                    <textarea id="experience-input" placeholder="请包含以下要素：
+- 项目/任务背景 (Situation): 当时所处的情境、环境或背景
+- 承担的任务 (Task): 需要达成的具体目标或扮演的角色
+- 采取的行动 (Action): 为了完成任务所采取的具体步骤、方法和思考过程
+- 取得的结果 (Result): 最终达成的成果，包括量化或质化的数据，以及从中获得的经验教训"></textarea>
+                </div>
+                
+                <button id="analyze-btn" class="btn-success">智能分析</button>
             </div>
-          ))}
-          <button onClick={generateWorkSummary} className="bg-blue-600 text-white px-4 py-2 rounded">提炼亮点 + 保存</button>
-          {summary && (
-            <div className="mt-4">
-              <p className="bg-gray-100 p-3 rounded">{summary}</p>
-              <p className="text-sm mt-2 text-gray-600">能力标签：<span className="text-blue-700 font-semibold">{coreTag}</span></p>
+            
+            <div id="star-result" class="card hidden">
+                <h2>STAR结构化结果</h2>
+                <p>请检查并完善AI自动提取的内容：</p>
+                
+                <div class="star-section">
+                    <h4>Situation (情境)</h4>
+                    <textarea id="situation-text" placeholder="描述当时的情境、环境或背景"></textarea>
+                </div>
+                
+                <div class="star-section">
+                    <h4>Task (任务)</h4>
+                    <textarea id="task-text" placeholder="描述您需要达成的具体目标或扮演的角色"></textarea>
+                </div>
+                
+                <div class="star-section">
+                    <h4>Action (行动)</h4>
+                    <textarea id="action-text" placeholder="描述您采取的具体步骤、方法和思考过程"></textarea>
+                </div>
+                
+                <div class="star-section">
+                    <h4>Result (结果)</h4>
+                    <textarea id="result-text" placeholder="描述最终达成的成果，包括量化或质化的数据，以及从中获得的经验教训"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="elevator-pitch">一句话亮点总结：</label>
+                    <textarea id="elevator-pitch" class="elevator-pitch" placeholder="系统将自动生成一句高度概括该工作经历亮点的'电梯演讲'式短句"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="core-title">核心能力标签：</label>
+                    <input type="text" id="core-title" placeholder="系统将自动生成一个4-6字的小标题，概括核心能力">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tags">添加标签：</label>
+                    <input type="text" id="tags" placeholder="输入标签，用逗号分隔">
+                </div>
+                
+                <button id="save-review-btn" class="btn-success">保存到能力素材库</button>
             </div>
-          )}
-          <div className="mt-6">
-            <h3 className="text-lg font-medium">🗂️ 历史记录</h3>
-            <ul className="space-y-2 mt-2">
-              {workHistory.map((entry, index) => (
-                <li key={index} className="border rounded p-2 text-sm">
-                  <div className="text-gray-800">{entry.summary}</div>
-                  <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        </div>
+        
+        <!-- 工作卡点分析模块 -->
+        <div id="challenge" class="tab-content">
+            <div class="card">
+                <h2>工作卡点分析与解决方案记录</h2>
+                <p>深入剖析工作中遇到的困难和瓶颈，记录解决方案与反思，将挑战转化为成长机会。</p>
+                
+                <div class="form-group">
+                    <label for="challenge-context">背景描述：</label>
+                    <textarea id="challenge-context" placeholder="在 [什么项目/任务] 的 [什么阶段]，我遇到了 [什么样的困难或挑战]"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="challenge-analysis">分析与解决过程：</label>
+                    <textarea id="challenge-analysis" placeholder="详细记录为解决这个困难所进行的思考、分析过程，以及采取的具体行动和措施"></textarea>
+                    <small>您可以在此部分插入外部链接或上传相关文档</small>
+                    <div id="resource-links" class="form-group">
+                        <button id="add-link-btn" class="btn-secondary">添加参考链接</button>
+                        <div id="links-container"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="challenge-result">结果与反思：</label>
+                    <textarea id="challenge-result" placeholder="描述最终解决了问题的情况，或者即使未完全解决，达到的程度如何。总结从这个过程中学到了什么、获得了哪些能力提升、未来如何避免类似问题或做得更好"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="challenge-tags">添加标签：</label>
+                    <input type="text" id="challenge-tags" placeholder="输入标签，用逗号分隔">
+                </div>
+                
+                <button id="save-challenge-btn" class="btn-success">保存到问题解决知识库</button>
+            </div>
+        </div>
+        
+        <!-- 学习规划模块 -->
+        <div id="learning" class="tab-content">
+            <div class="card">
+                <h2>未来学习与发展规划</h2>
+                <p>明确学习目标，系统化地搜集和管理学习资源，并持续追踪学习进度与成效。</p>
+                
+                <div class="form-group">
+                    <label for="learning-context">学习背景：</label>
+                    <textarea id="learning-context" placeholder="描述为什么想要学习这项新知识/技能（例如：源于某个工作卡点、职业发展需要、个人兴趣等）"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="learning-goal">学习内容：</label>
+                    <input type="text" id="learning-goal" placeholder="明确指出想要学习的具体领域、技能或工具名称">
+                </div>
+                
+                <div class="form-group">
+                    <label>优先级：</label>
+                    <select id="learning-priority">
+                        <option value="high">高优先级</option>
+                        <option value="medium" selected>中等优先级</option>
+                        <option value="low">低优先级</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="target-date">目标完成日期：</label>
+                    <input type="date" id="target-date">
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">学习资源库</h3>
+                    </div>
+                    <div id="resources-container">
+                        <div class="resource-item">
+                            <input type="text" class="resource-url" placeholder="输入资源URL">
+                            <input type="text" class="resource-desc" placeholder="简短描述">
+                            <button class="btn-danger remove-resource">删除</button>
+                        </div>
+                    </div>
+                    <button id="add-resource-btn" class="btn-secondary">添加资源</button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">学习进度追踪</h3>
+                    </div>
+                    <div id="progress-container">
+                        <div class="log-entry">
+                            <div class="form-group">
+                                <label>日期：</label>
+                                <input type="date" class="log-date">
+                            </div>
+                            <div class="form-group">
+                                <label>进展描述：</label>
+                                <textarea class="log-description" placeholder="记录本次学习的具体内容、完成的步骤或达到的里程碑"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>反思与优化：</label>
+                                <textarea class="log-reflection" placeholder="记录学习过程中的思考、遇到的问题以及可以改进的地方"></textarea>
+                            </div>
+                            <button class="btn-danger remove-log">删除记录</button>
+                        </div>
+                    </div>
+                    <button id="add-log-btn" class="btn-secondary">添加进度记录</button>
+                </div>
+                
+                <button id="save-learning-btn" class="btn-success">保存学习计划</button>
+            </div>
+        </div>
+        
+        <!-- 能力素材库模块 -->
+        <div id="library" class="tab-content">
+            <div class="card">
+                <h2>我的能力素材库</h2>
+                <p>您所有的工作复盘、卡点分析和学习记录的集中展示区。</p>
+                
+                <div class="form-group">
+                    <label for="library-search">搜索：</label>
+                    <input type="text" id="library-search" placeholder="输入关键词或标签搜索">
+                </div>
+                
+                <div class="form-group">
+                    <label>筛选类型：</label>
+                    <select id="library-filter">
+                        <option value="all">全部</option>
+                        <option value="review">工作复盘</option>
+                        <option value="challenge">卡点分析</option>
+                        <option value="learning">学习计划</option>
+                    </select>
+                </div>
+                
+                <div id="library-results">
+                    <!-- 动态内容将通过JavaScript加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-        {/* 模块二 */}
-        <section>
-          <h2 className="text-xl font-semibold mb-2">🚧 工作卡点分析</h2>
-          <textarea name="context" value={challenge.context} onChange={handleChallengeChange} placeholder="背景描述" className="w-full border rounded p-2 mb-2" rows={2} />
-          <textarea name="analysis" value={challenge.analysis} onChange={handleChallengeChange} placeholder="分析与解决方案（可附资源链接）" className="w-full border rounded p-2 mb-2" rows={3} />
-          <textarea name="reflection" value={challenge.reflection} onChange={handleChallengeChange} placeholder="结果与反思" className="w-full border rounded p-2" rows={2} />
-          <button onClick={saveChallenge} className="bg-green-600 text-white px-4 py-2 rounded mt-2">保存记录</button>
-          <div className="mt-6">
-            <h3 className="text-lg font-medium">🗂️ 历史记录</h3>
-            <ul className="space-y-2 mt-2">
-              {challengeHistory.map((entry, index) => (
-                <li key={index} className="border rounded p-2 text-sm">
-                  <div className="text-gray-800">{entry.context}</div>
-                  <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* 模块三 */}
-        <section>
-          <h2 className="text-xl font-semibold mb-2">📚 未来学习规划</h2>
-          <textarea name="context" value={learning.context} onChange={handleLearningChange} placeholder="为什么学？背景/动机" className="w-full border rounded p-2 mb-2" rows={2} />
-          <input name="topic" value={learning.topic} onChange={handleLearningChange} placeholder="学习内容/技能名称" className="w-full border rounded p-2 mb-2" />
-          <textarea name="resources" value={learning.resources} onChange={handleLearningChange} placeholder="资源链接/说明" className="w-full border rounded p-2 mb-2" rows={2} />
-          <textarea name="log" value={learning.log} onChange={handleLearningChange} placeholder="学习进展描述" className="w-full border rounded p-2 mb-2" rows={2} />
-          <textarea name="reflection" value={learning.reflection} onChange={handleLearningChange} placeholder="优化与反思" className="w-full border rounded p-2 mb-2" rows={2} />
-          <button onClick={saveLearning} className="bg-purple-600 text-white px-4 py-2 rounded">保存学习记录</button>
-          <div className="mt-6">
-            <h3 className="text-lg font-medium">🗂️ 历史记录</h3>
-            <ul className="space-y-2 mt-2">
-              {learningHistory.map((entry, index) => (
-                <li key={index} className="border rounded p-2 text-sm">
-                  <div className="text-gray-800">学习：{entry.topic}</div>
-                  <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      </main>
-    </>
-  );
-}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 标签切换功能
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // 移除所有active类
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // 添加active类到当前标签和内容
+                    tab.classList.add('active');
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // 如果是素材库标签，加载数据
+                    if (tabId === 'library') {
+                        loadLibraryData();
+                    }
+                });
+            });
+            
+            // 工作复盘分析功能
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const experienceInput = document.getElementById('experience-input');
+            const starResult = document.getElementById('star-result');
+            
+            analyzeBtn.addEventListener('click', () => {
+                const text = experienceInput.value.trim();
+                if (text === '') {
+                    alert('请输入工作经历描述');
+                    return;
+                }
+                
+                // 模拟AI分析过程
+                simulateAIAnalysis(text);
+                starResult.classList.remove('hidden');
+            });
+            
+            function simulateAIAnalysis(text) {
+                // 这里应该是调用AI API的地方，这里只是模拟
+                // 在实际应用中，您需要调用后端API来处理文本分析
+                
+                // 模拟提取STAR要素
+                document.getElementById('situation-text').value = "模拟提取的情境描述: " + text.substring(0, 100) + "...";
+                document.getElementById('task-text').value = "模拟提取的任务描述: " + text.substring(50, 150) + "...";
+                document.getElementById('action-text').value = "模拟提取的行动描述: " + text.substring(100, 250) + "...";
+                document.getElementById('result-text').value = "模拟提取的结果描述: " + text.substring(200, 350) + "...";
+                
+                // 模拟生成电梯演讲
+                document.getElementById('elevator-pitch').value = "成功实现了" + Math.floor(Math.random() * 50) + "%的效率提升，通过创新的解决方案解决了关键问题";
+                
+                // 模拟生成核心能力标签
+                const tags = ["项目管理", "团队协作", "问题解决", "创新思维", "数据分析"];
+                document.getElementById('core-title').value = tags[Math.floor(Math.random() * tags.length)];
+            }
+            
+            // 保存工作复盘
+            const saveReviewBtn = document.getElementById('save-review-btn');
+            saveReviewBtn.addEventListener('click', () => {
+                const situation = document.getElementById('situation-text').value.trim();
+                const task = document.getElementById('task-text').value.trim();
+                const action = document.getElementById('action-text').value.trim();
+                const result = document.getElementById('result-text').value.trim();
+                const pitch = document.getElementById('elevator-pitch').value.trim();
+                const title = document.getElementById('core-title').value.trim();
+                const tags = document.getElementById('tags').value.trim();
+                
+                if (!situation || !task || !action || !result) {
+                    alert('请完成所有STAR部分的填写');
+                    return;
+                }
+                
+                // 获取或初始化本地存储中的数据
+                let reviews = JSON.parse(localStorage.getItem('workReviews')) || [];
+                
+                // 创建新条目
+                const newReview = {
+                    id: Date.now(),
+                    type: 'review',
+                    situation,
+                    task,
+                    action,
+                    result,
+                    pitch,
+                    title,
+                    tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
+                    createdAt: new Date().toISOString()
+                };
+                
+                // 添加到数组并保存
+                reviews.push(newReview);
+                localStorage.setItem('workReviews', JSON.stringify(reviews));
+                
+                alert('工作复盘已保存到能力素材库');
+                resetReviewForm();
+            });
+            
+            function resetReviewForm() {
+                document.getElementById('experience-input').value = '';
+                document.getElementById('situation-text').value = '';
+                document.getElementById('task-text').value = '';
+                document.getElementById('action-text').value = '';
+                document.getElementById('result-text').value = '';
+                document.getElementById('elevator-pitch').value = '';
+                document.getElementById('core-title').value = '';
+                document.getElementById('tags').value = '';
+                starResult.classList.add('hidden');
+            }
+            
+            // 工作卡点分析 - 添加参考链接
+            const addLinkBtn = document.getElementById('add-link-btn');
+            const linksContainer = document.getElementById('links-container');
+            
+            addLinkBtn.addEventListener('click', () => {
+                const linkDiv = document.createElement('div');
+                linkDiv.className = 'resource-link';
+                linkDiv.innerHTML = `
+                    <input type="text" placeholder="链接URL" class="link-url">
+                    <input type="text" placeholder="链接描述" class="link-desc">
+                    <button class="btn-danger remove-link">删除</button>
+                `;
+                linksContainer.appendChild(linkDiv);
+                
+                // 为新添加的删除按钮添加事件监听
+                linkDiv.querySelector('.remove-link').addEventListener('click', () => {
+                    linksContainer.removeChild(linkDiv);
+                });
+            });
+            
+            // 保存工作卡点分析
+            const saveChallengeBtn = document.getElementById('save-challenge-btn');
+            saveChallengeBtn.addEventListener('click', () => {
+                const context = document.getElementById('challenge-context').value.trim();
+                const analysis = document.getElementById('challenge-analysis').value.trim();
+                const result = document.getElementById('challenge-result').value.trim();
+                const tags = document.getElementById('challenge-tags').value.trim();
+                
+                if (!context || !analysis) {
+                    alert('请至少填写背景和分析部分');
+                    return;
+                }
+                
+                // 收集所有链接
+                const links = [];
+                document.querySelectorAll('.resource-link').forEach(linkDiv => {
+                    const url = linkDiv.querySelector('.link-url').value.trim();
+                    const desc = linkDiv.querySelector('.link-desc').value.trim();
+                    if (url) {
+                        links.push({ url, desc });
+                    }
+                });
+                
+                // 获取或初始化本地存储中的数据
+                let challenges = JSON.parse(localStorage.getItem('workChallenges')) || [];
+                
+                // 创建新条目
+                const newChallenge = {
+                    id: Date.now(),
+                    type: 'challenge',
+                    context,
+                    analysis,
+                    result,
+                    links,
+                    tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
+                    createdAt: new Date().toISOString()
+                };
+                
+                // 添加到数组并保存
+                challenges.push(newChallenge);
+                localStorage.setItem('workChallenges', JSON.stringify(challenges));
+                
+                alert('工作卡点分析已保存到问题解决知识库');
+                resetChallengeForm();
+            });
+            
+            function resetChallengeForm() {
+                document.getElementById('challenge-context').value = '';
+                document.getElementById('challenge-analysis').value = '';
+                document.getElementById('challenge-result').value = '';
+                document.getElementById('challenge-tags').value = '';
+                document.getElementById('links-container').innerHTML = '';
+            }
+            
+            // 学习规划 - 添加资源
+            const addResourceBtn = document.getElementById('add-resource-btn');
+            const resourcesContainer = document.getElementById('resources-container');
+            
+            addResourceBtn.addEventListener('click', () => {
+                const resourceDiv = document.createElement('div');
+                resourceDiv.className = 'resource-item';
+                resourceDiv.innerHTML = `
+                    <input type="text" class="resource-url" placeholder="输入资源URL">
+                    <input type="text" class="resource-desc" placeholder="简短描述">
+                    <button class="btn-danger remove-resource">删除</button>
+                `;
+                resourcesContainer.appendChild(resourceDiv);
+                
+                // 为新添加的删除按钮添加事件监听
+                resourceDiv.querySelector('.remove-resource').addEventListener('click', () => {
+                    resourcesContainer.removeChild(resourceDiv);
+                });
+            });
+            
+            // 学习规划 - 添加进度记录
+            const addLogBtn = document.getElementById('add-log-btn');
+            const progressContainer = document.getElementById('progress-container');
+            
+            addLogBtn.addEventListener('click', () => {
+                const logDiv = document.createElement('div');
+                logDiv.className = 'log-entry';
+                logDiv.innerHTML = `
+                    <div class="form-group">
+                        <label>日期：</label>
+                        <input type="date" class="log-date">
+                    </div>
+                    <div class="form-group">
+                        <label>进展描述：</label>
+                        <textarea class="log-description" placeholder="记录本次学习的具体内容、完成的步骤或达到的里程碑"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>反思与优化：</label>
+                        <textarea class="log-reflection" placeholder="记录学习过程中的思考、遇到的问题以及可以改进的地方"></textarea>
+                    </div>
+                    <button class="btn-danger remove-log">删除记录</button>
+                `;
+                progressContainer.appendChild(logDiv);
+                
+                // 设置默认日期为今天
+                logDiv.querySelector('.log-date').valueAsDate = new Date();
+                
+                // 为新添加的删除按钮添加事件监听
+                logDiv.querySelector('.remove-log').addEventListener('click', () => {
+                    progressContainer.removeChild(logDiv);
+                });
+            });
+            
+            // 保存学习计划
+            const saveLearningBtn = document.getElementById('save-learning-btn');
+            saveLearningBtn.addEventListener('click', () => {
+                const context = document.getElementById('learning-context').value.trim();
+                const goal = document.getElementById('learning-goal').value.trim();
+                const priority = document.getElementById('learning-priority').value;
+                const targetDate = document.getElementById('target-date').value;
+                
+                if (!context || !goal) {
+                    alert('请至少填写学习背景和学习内容');
+                    return;
+                }
+                
+                // 收集所有资源
+                const resources = [];
+                document.querySelectorAll('.resource-item').forEach(resourceDiv => {
+                    const url = resourceDiv.querySelector('.resource-url').value.trim();
+                    const desc = resourceDiv.querySelector('.resource-desc').value.trim();
+                    if (url) {
+                        resources.push({ url, desc });
+                    }
+                });
+                
+                // 收集所有进度记录
+                const progressLogs = [];
+                document.querySelectorAll('.log-entry').forEach(logDiv => {
+                    const date = logDiv.querySelector('.log-date').value;
+                    const description = logDiv.querySelector('.log-description').value.trim();
+                    const reflection = logDiv.querySelector('.log-reflection').value.trim();
+                    
+                    if (date && (description || reflection)) {
+                        progressLogs.push({
+                            date,
+                            description,
+                            reflection
+                        });
+                    }
+                });
+                
+                // 获取或初始化本地存储中的数据
+                let learnings = JSON.parse(localStorage.getItem('learningPlans')) || [];
+                
+                // 创建新条目
+                const newLearning = {
+                    id: Date.now(),
+                    type: 'learning',
+                    context,
+                    goal,
+                    priority,
+                    targetDate,
+                    resources,
+                    progressLogs,
+                    createdAt: new Date().toISOString()
+                };
+                
+                // 添加到数组并保存
+                learnings.push(newLearning);
+                localStorage.setItem('learningPlans', JSON.stringify(learnings));
+                
+                alert('学习计划已保存');
+                resetLearningForm();
+            });
+            
+            function resetLearningForm() {
+                document.getElementById('learning-context').value = '';
+                document.getElementById('learning-goal').value = '';
+                document.getElementById('learning-priority').value = 'medium';
+                document.getElementById('target-date').value = '';
+                document.getElementById('resources-container').innerHTML = '';
+                document.getElementById('progress-container').innerHTML = '';
+                
+                // 添加一个默认的资源输入框和进度记录
+                addResourceBtn.click();
+                addLogBtn.click();
+            }
+            
+            // 初始化学习规划表单
+            addResourceBtn.click();
+            addLogBtn.click();
+            
+            // 能力素材库功能
+            function loadLibraryData() {
+                const libraryResults = document.getElementById('library-results');
+                libraryResults.innerHTML = '';
+                
+                // 获取搜索和筛选条件
+                const searchTerm = document.getElementById('library-search').value.toLowerCase();
+                const filterType = document.getElementById('library-filter').value;
+                
+                // 从本地存储加载所有数据
+                const reviews = JSON.parse(localStorage.getItem('workReviews')) || [];
+                const challenges = JSON.parse(localStorage.getItem('workChallenges')) || [];
+                const learnings = JSON.parse(localStorage.getItem('learningPlans')) || [];
+                
+                // 合并所有数据并按时间排序
+                let allItems = [...reviews, ...challenges, ...learnings];
+                allItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                // 应用筛选
+                if (filterType !== 'all') {
+                    allItems = allItems.filter(item => item.type === filterType);
+                }
+                
+                // 应用搜索
+                if (searchTerm) {
+                    allItems = allItems.filter(item => {
+                        // 检查各个字段是否匹配搜索词
+                        const fieldsToSearch = [];
+                        
+                        if (item.type === 'review') {
+                            fieldsToSearch.push(item.situation, item.task, item.action, item.result, item.pitch, item.title, item.tags.join(' '));
+                        } else if (item.type === 'challenge') {
+                            fieldsToSearch.push(item.context, item.analysis, item.result, item.tags.join(' '));
+                        } else if (item.type === 'learning') {
+                            fieldsToSearch.push(item.context, item.goal);
+                        }
+                        
+                        return fieldsToSearch.some(field => 
+                            field && field.toLowerCase().includes(searchTerm)
+                        );
+                    });
+                }
+                
+                // 显示结果
+                if (allItems.length === 0) {
+                    libraryResults.innerHTML = '<p>没有找到匹配的条目</p>';
+                    return;
+                }
+                
+                allItems.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'card';
+                    
+                    if (item.type === 'review') {
+                        itemDiv.innerHTML = `
+                            <div class="card-header">
+                                <h3 class="card-title">${item.title || '未命名工作复盘'}</h3>
+                                <span class="tag">工作复盘</span>
+                            </div>
+                            <div class="star-section">
+                                <h4>情境 (Situation)</h4>
+                                <p>${item.situation || '无'}</p>
+                            </div>
+                            <div class="star-section">
+                                <h4>任务 (Task)</h4>
+                                <p>${item.task || '无'}</p>
+                            </div>
+                            <div class="star-section">
+                                <h4>行动 (Action)</h4>
+                                <p>${item.action || '无'}</p>
+                            </div>
+                            <div class="star-section">
+                                <h4>结果 (Result)</h4>
+                                <p>${item.result || '无'}</p>
+                            </div>
+                            <div class="elevator-pitch">
+                                <strong>亮点总结:</strong> ${item.pitch || '无'}
+                            </div>
+                            <div>
+                                ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                            <small>创建于: ${new Date(item.createdAt).toLocaleString()}</small>
+                        `;
+                    } else if (item.type === 'challenge') {
+                        itemDiv.innerHTML = `
+                            <div class="card-header">
+                                <h3 class="card-title">工作卡点分析</h3>
+                                <span class="tag">问题解决</span>
+                            </div>
+                            <div class="form-group">
+                                <h4>背景</h4>
+                                <p>${item.context || '无'}</p>
+                            </div>
+                            <div class="form-group">
+                                <h4>分析与解决</h4>
+                                <p>${item.analysis || '无'}</p>
+                            </div>
+                            ${item.links && item.links.length > 0 ? `
+                            <div class="form-group">
+                                <h4>参考资源</h4>
+                                <ul>
+                                    ${item.links.map(link => `<li><a href="${link.url}" target="_blank">${link.desc || link.url}</a></li>`).join('')}
+                                </ul>
+                            </div>
+                            ` : ''}
+                            <div class="form-group">
+                                <h4>结果与反思</h4>
+                                <p>${item.result || '无'}</p>
+                            </div>
+                            <div>
+                                ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                            <small>创建于: ${new Date(item.createdAt).toLocaleString()}</small>
+                        `;
+                    } else if (item.type === 'learning') {
+                        itemDiv.innerHTML = `
+                            <div class="card-header">
+                                <h3 class="card-title">学习目标: ${item.goal || '未命名学习目标'}</h3>
+                                <span class="tag">学习计划</span>
+                            </div>
+                            <div class="form-group">
+                                <h4>学习背景</h4>
+                                <p>${item.context || '无'}</p>
+                            </div>
+                            <div class="form-group">
+                                <p><strong>优先级:</strong> ${getPriorityText(item.priority)}</p>
+                                ${item.targetDate ? `<p><strong>目标完成日期:</strong> ${new Date(item.targetDate).toLocaleDateString()}</p>` : ''}
+                            </div>
+                            ${item.resources && item.resources.length > 0 ? `
+                            <div class="form-group">
+                                <h4>学习资源</h4>
+                                <ul>
+                                    ${item.resources.map(res => `<li><a href="${res.url}" target="_blank">${res.desc || res.url}</a></li>`).join('')}
+                                </ul>
+                            </div>
+                            ` : ''}
+                            ${item.progressLogs && item.progressLogs.length > 0 ? `
+                            <div class="form-group">
+                                <h4>学习进度</h4>
+                                ${item.progressLogs.map(log => `
+                                    <div class="log-entry">
+                                        <p><strong>${new Date(log.date).toLocaleDateString()}</strong></p>
+                                        ${log.description ? `<p>${log.description}</p>` : ''}
+                                        ${log.reflection ? `<p><em>反思:</em> ${log.reflection}</p>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ` : ''}
+                            <small>创建于: ${new Date(item.createdAt).toLocaleString()}</small>
+                        `;
+                    }
+                    
+                    libraryResults.appendChild(itemDiv);
+                });
+            }
+            
+            function getPriorityText(priority) {
+                switch (priority) {
+                    case 'high': return '高优先级';
+                    case 'medium': return '中等优先级';
+                    case 'low': return '低优先级';
+                    default: return priority;
+                }
+            }
+            
+            // 为素材库的搜索和筛选添加事件监听
+            document.getElementById('library-search').addEventListener('input', loadLibraryData);
+            document.getElementById('library-filter').addEventListener('change', loadLibraryData);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+// pages/index.js
+import Head from 'next/head'
+import { useState, useEffect } from 'react'
+
+export default function Home() {
+  // 模块一：工作复盘
+  const [workExperience, setWorkExperience] = useState({
+    situation: '', task: '', action: '', result: ''
+  });
+  const [summary, setSummary] = useState('');
+  const [coreTag, setCoreTag] = useState('');
+  const [workHistory, setWorkHistory] = useState([]);
+
+  const handleWorkInputChange = (e) => {
+    const { name, value } = e.target;
+    setWorkExperience(prev => ({ ...prev, [name]: value }));
+  };
+
+  const generateWorkSummary = () => {
+    const { situation, task, action, result } = workExperience;
+    const shortSummary = `在${situation}中，负责${task}，采取了${action}，最终${result}`;
+    const tag = task.length > 8 ? task.slice(0, 6) : '能力提炼';
+    setSummary(shortSummary);
+    setCoreTag(tag);
+
+    const newEntry = {
+      ...workExperience,
+      summary: shortSummary,
+      coreTag: tag,
+      timestamp: new Date().toISOString()
+    };
+    const updatedHistory = [...workHistory, newEntry];
+    setWorkHistory(updatedHistory);
+    localStorage.setItem('workHistory', JSON.stringify(updatedHistory));
+  };
+
+  // 模块二：工作卡点分析
+  const [challenge, setChallenge] = useState({
+    context: '', analysis: '', reflection: ''
+  });
+  const [challengeHistory, setChallengeHistory] = useState([]);
+
+  const handleChallengeChange = (e) => {
+    const { name, value } = e.target;
+    setChallenge(prev => ({ ...prev, [name]: value }));
+  };
+
+  const saveChallenge = () => {
+    const newEntry = { ...challenge, timestamp: new Date().toISOString() };
+    const updatedHistory = [...challengeHistory, newEntry];
+    setChallengeHistory(updatedHistory);
+    localStorage.setItem('challengeHistory', JSON.stringify(updatedHistory));
+  };
+
+  // 模块三：学习计划
+  const [learning, setLearning] = useState({
+    context: '', topic: '', resources: '', log: '', reflection: ''
+  });
+  const [learningHistory, setLearningHistory] = useState([]);
+
+  const handleLearningChange = (e) => {
+    const { name, value } = e.target;
+    setLearning(prev => ({ ...prev, [name]: value }));
+  };
+
+  const saveLearning = () => {
+    const newEntry = { ...learning, timestamp: new Date().toISOString() };
+    const updatedHistory = [...learningHistory, newEntry];
+    setLearningHistory(updatedHistory);
+    localStorage.setItem('learningHistory', JSON.stringify(updatedHistory));
+  };
+
+  useEffect(() => {
+    const wh = JSON.parse(localStorage.getItem('workHistory') || '[]');
+    const ch = JSON.parse(localStorage.getItem('challengeHistory') || '[]');
+    const lh = JSON.parse(localStorage.getItem('learningHistory') || '[]');
+    setWorkHistory(wh);
+    setChallengeHistory(ch);
+    setLearningHistory(lh);
+  }, []);
+
+  return (
+    <>
+      <Head>
+        <title>成长工作台</title>
+      </Head>
+      <main className="p-4 max-w-3xl mx-auto space-y-10">
+        <h1 className="text-3xl font-bold text-center">成长工作台</h1>
+
+        {/* 模块一 */}
+        <section>
+          <h2 className="text-xl font-semibold mb-2">🧠 工作复盘（STAR）</h2>
+          {["situation", "task", "action", "result"].map(field => (
+            <div key={field} className="mb-3">
+              <label className="block font-medium capitalize mb-1">{field}</label>
+              <textarea name={field} value={workExperience[field]} onChange={handleWorkInputChange} className="w-full border rounded p-2" rows={2} />
+            </div>
+          ))}
+          <button onClick={generateWorkSummary} className="bg-blue-600 text-white px-4 py-2 rounded">提炼亮点 + 保存</button>
+          {summary && (
+            <div className="mt-4">
+              <p className="bg-gray-100 p-3 rounded">{summary}</p>
+              <p className="text-sm mt-2 text-gray-600">能力标签：<span className="text-blue-700 font-semibold">{coreTag}</span></p>
+            </div>
+          )}
+          <div className="mt-6">
+            <h3 className="text-lg font-medium">🗂️ 历史记录</h3>
+            <ul className="space-y-2 mt-2">
+              {workHistory.map((entry, index) => (
+                <li key={index} className="border rounded p-2 text-sm">
+                  <div className="text-gray-800">{entry.summary}</div>
+                  <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* 模块二 */}
+        <section>
+          <h2 className="text-xl font-semibold mb-2">🚧 工作卡点分析</h2>
+          <textarea name="context" value={challenge.context} onChange={handleChallengeChange} placeholder="背景描述" className="w-full border rounded p-2 mb-2" rows={2} />
+          <textarea name="analysis" value={challenge.analysis} onChange={handleChallengeChange} placeholder="分析与解决方案（可附资源链接）" className="w-full border rounded p-2 mb-2" rows={3} />
+          <textarea name="reflection" value={challenge.reflection} onChange={handleChallengeChange} placeholder="结果与反思" className="w-full border rounded p-2" rows={2} />
+          <button onClick={saveChallenge} className="bg-green-600 text-white px-4 py-2 rounded mt-2">保存记录</button>
+          <div className="mt-6">
+            <h3 className="text-lg font-medium">🗂️ 历史记录</h3>
+            <ul className="space-y-2 mt-2">
+              {challengeHistory.map((entry, index) => (
+                <li key={index} className="border rounded p-2 text-sm">
+                  <div className="text-gray-800">{entry.context}</div>
+                  <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* 模块三 */}
+        <section>
+          <h2 className="text-xl font-semibold mb-2">📚 未来学习规划</h2>
+          <textarea name="context" value={learning.context} onChange={handleLearningChange} placeholder="为什么学？背景/动机" className="w-full border rounded p-2 mb-2" rows={2} />
+          <input name="topic" value={learning.topic} onChange={handleLearningChange} placeholder="学习内容/技能名称" className="w-full border rounded p-2 mb-2" />
+          <textarea name="resources" value={learning.resources} onChange={handleLearningChange} placeholder="资源链接/说明" className="w-full border rounded p-2 mb-2" rows={2} />
+          <textarea name="log" value={learning.log} onChange={handleLearningChange} placeholder="学习进展描述" className="w-full border rounded p-2 mb-2" rows={2} />
+          <textarea name="reflection" value={learning.reflection} onChange={handleLearningChange} placeholder="优化与反思" className="w-full border rounded p-2 mb-2" rows={2} />
+          <button onClick={saveLearning} className="bg-purple-600 text-white px-4 py-2 rounded">保存学习记录</button>
+          <div className="mt-6">
+            <h3 className="text-lg font-medium">🗂️ 历史记录</h3>
+            <ul className="space-y-2 mt-2">
+              {learningHistory.map((entry, index) => (
+                <li key={index} className="border rounded p-2 text-sm">
+                  <div className="text-gray-800">学习：{entry.topic}</div>
+                  <div className="text-xs text-gray-500">{new Date(entry.timestamp).toLocaleString()}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      </main>
+    </>
+  );
+}
